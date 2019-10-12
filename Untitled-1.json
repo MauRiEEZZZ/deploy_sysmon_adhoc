@@ -1,0 +1,52 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "VM_Name": {
+            "type": "string",
+            "metadata": {
+              "description": "Name of the VM to deploy sysmon on"
+            }
+        },
+        "StorageAccountName": {
+            "type": "string",
+            "metadata": {
+              "description": "Name of the VM to deploy sysmon on"
+            }
+        },
+        "StorageAccountKey": {
+            "type": "securestring",
+            "metadata": {
+                "description": "The key of the storage account"
+            }
+        }
+    },
+    "resources": [
+         {
+            "apiVersion": "2016-03-30",
+            "name": "[concat(parameters('VM_Name'),'/EduarteSQLExtension')]",
+            "type": "Microsoft.Compute/virtualMachines/extensions",
+            "location": "[resourceGroup().location]",
+            "dependsOn": [],
+            "properties": {
+                "publisher": "Microsoft.Compute",
+                "type": "CustomScriptExtension",
+                "typeHandlerVersion": "1.4",
+                "autoUpgradeMinorVersion": true,
+                "settings": {
+                    "fileUris": [
+                        "https://<storageaccountnaam>.blob.core.windows.net/eduarteextension/BackendSQLExtension.ps1",
+                        "https://<storageaccountnaam>.blob.core.windows.net/eduarteextension/SqlServer2017Config.ini",
+                        "https://<storageaccountnaam>.blob.core.windows.net/eduarteextension/SW_DVD9_NTRL_SQL_Svr_Ent_Core_2017_64Bit_English_OEM_VL_X21-56995.ISO"
+                    ],
+                    "timestamp": 123456782
+                },
+                "protectedSettings": {
+                    "commandToExecute": "[concat('powershell -ExecutionPolicy Unrestricted -File BackendSQLExtension.ps1 -AcctKey \"', parameters('VM_Name'), '\" -StrEnginePW \"')]",
+                    "storageAccountName": "[ parameters('StorageAccountName')]",
+                    "storageAccountKey": "[ parameters('StorageAccountKey')]"
+                }
+            }
+        }
+    ]
+}
