@@ -100,8 +100,10 @@ function InstallSysmon {
         $sysmonbin = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath a.exe
         $s = Copy-Item -Path $sysmonbin -Destination "$($env:systemroot)\system32\sysmon.exe" -PassThru -Force
         try {
-            $null = Start-Process -FilePath $s -ArgumentList @('-i','-accepteula') -PassThru -NoNewWindow -ErrorAction Stop | Wait-Process
-            Write-Verbose -Message 'Successfully installed sysmon'
+            Start-Process -FilePath $s -ArgumentList @('-i','-accepteula') -PassThru -NoNewWindow -ErrorAction Stop | Wait-Process
+            if (@(Get-Service -Name sysmon,sysmondrv -ErrorAction SilentlyContinue).Count -eq 2) { 
+                Write-Information -Message 'Successfully installed sysmon' 
+            }            
         } catch {
             $errorReturn = $_
             $errorResult = ($errorReturn | ConvertFrom-Json ).error
@@ -109,6 +111,9 @@ function InstallSysmon {
             Write-Error "Unable to start Sysmon on $(env:Computername) with message: $($errorResult.message)" -ErrorAction Stop
 
         }
+    }
+    else {
+        Write-Information -Message "Sysmon is already running on this system"
     }
 }
 
