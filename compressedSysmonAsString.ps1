@@ -35,7 +35,7 @@ function Expand-ByteArray {
 
 	    $decompressedDataStream = New-Object System.IO.MemoryStream
         $gzipInstance = New-Object System.IO.Compression.GzipStream $inMemDataStream, ([IO.Compression.CompressionMode]::Decompress)
-	    Write-Verbose "Write-Verbose -Message "Decompressing byte array"
+	    Write-Verbose -Message "Decompressing byte array"
 	    $gzipInstance.CopyTo( $decompressedDataStream )
         $gzipInstance.Close()
 		$inMemDataStream.Close()
