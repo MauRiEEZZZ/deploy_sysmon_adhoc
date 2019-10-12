@@ -7,9 +7,9 @@ function DownloadSysmon {
         try {
             # https://msdn.microsoft.com/en-us/library/system.io.path.gettempfilename%28v=vs.110%29.aspx
             $tmpfile = [System.IO.Path]::GetTempFileName()
-            $null = Invoke-WebRequest -SslProtocol Tls12 -Uri 'https://live.sysinternals.com/Sysmon.exe' `
+            $null = Invoke-WebRequest -Uri 'https://live.sysinternals.com/Sysmon.exe' `
                               -OutFile $tmpfile -ErrorAction Stop
-            Write-Verbose -Message 'Sucessfully downloaded Sysmon.exe'
+            Write-Verbose 'Sucessfully downloaded Sysmon.exe'
             Unblock-File -Path $tmpfile -ErrorAction Stop
             $exefile = Join-Path -Path (Split-Path -Path $tmpfile -Parent) -ChildPath 'a.exe'
             if (Test-Path $exefile) {
@@ -18,7 +18,7 @@ function DownloadSysmon {
             $tmpfile | Rename-Item -NewName 'a.exe' -Force -ErrorAction Stop
 
         } catch {
-            Write-Verbose -Message "Something went wrong $($_.Exception.Message)"
+            Write-Verbose "Something went wrong $($_.Exception.Message)"
         }
     }
 }
@@ -35,7 +35,7 @@ function Expand-ByteArray {
 
 	    $decompressedDataStream = New-Object System.IO.MemoryStream
         $gzipInstance = New-Object System.IO.Compression.GzipStream $inMemDataStream, ([IO.Compression.CompressionMode]::Decompress)
-	    Write-Verbose -Message "Decompressing byte array"
+	    Write-Verbose "Decompressing byte array"
 	    $gzipInstance.CopyTo( $decompressedDataStream )
         $gzipInstance.Close()
 		$inMemDataStream.Close()
@@ -51,11 +51,10 @@ function CreateSysmon {
         try {
             $tmpfile = [System.IO.Path]::GetTempFileName()
             $CompressedByteArray = [System.Convert]::FromBase64String($sysmonAsString);
-            Write-Verbose -Message "Decompress ByteArray of $($CompressedByteArray.Length) bytes"
+            Write-Verbose "Decompress ByteArray of $($CompressedByteArray.Length) bytes"
             $ByteArray = Expand-ByteArray($CompressedByteArray);
             [System.IO.File]::WriteAllBytes($tmpfile, $ByteArray);
-            Write-Verbose -Message 'Sucessfully created Sysmon.exe'
-            #Unblock-File -Path $tmpfile -ErrorAction Stop
+            Write-Verbose 'Sucessfully created Sysmon.exe'
             $exefile = Join-Path -Path (Split-Path -Path $tmpfile -Parent) -ChildPath 'a.exe'
             if (Test-Path $exefile) {
                 Remove-Item -Path $exefile -Force -ErrorAction Stop
@@ -63,7 +62,7 @@ function CreateSysmon {
             $tmpfile | Rename-Item -NewName 'a.exe' -Force -ErrorAction Stop
 
         } catch {
-            Write-Verbose -Message "Failed to create file from Base64 string: $FilePath"
+            Write-Verbose "Failed to create file from Base64 string: $FilePath"
             Write-Error "Ran into an issue: $($PSItem.ToString())"
         }
     }
@@ -76,7 +75,7 @@ function TestSysmonFile {
     Param()
     $s = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath a.exe -ErrorAction SilentlyContinue
     if (-not(Test-Path -Path $s -PathType Leaf)) {
-        Write-Verbose -Message "Cannot find sysmon.exe in temp"
+        Write-Verbose "Cannot find sysmon.exe in temp"
         return $false
     }
     if(
@@ -84,10 +83,10 @@ function TestSysmonFile {
         (Get-AuthenticodeSignature -FilePath $s).Status.value__ -eq 0 # Valid
     
     ) {
-        Write-Verbose -Message 'Successfully found a valid signed sysmon.exe sysmon'
+        Write-Verbose 'Successfully found a valid signed Sysmon.exe'
         return $true
     } else {
-        Write-Verbose -Message 'A valid signed sysmon.exe was not found'
+        Write-Verbose 'A valid signed sysmon.exe was not found'
         return $false
     }
 }
@@ -102,18 +101,38 @@ function InstallSysmon {
         try {
             Start-Process -FilePath $s -ArgumentList @('-i','-accepteula') -PassThru -NoNewWindow -ErrorAction Stop | Wait-Process
             if (@(Get-Service -Name sysmon,sysmondrv -ErrorAction SilentlyContinue).Count -eq 2) { 
-                Write-Information -Message 'Successfully installed sysmon' 
+                Write-Output 'Successfully installed sysmon' 
             }            
         } catch {
-            $errorReturn = $_
-            $errorResult = ($errorReturn | ConvertFrom-Json ).error
             Write-Verbose $_
-            Write-Error "Unable to start Sysmon on $(env:Computername) with message: $($errorResult.message)" -ErrorAction Stop
-
+            Write-Error "Message: $($_.ErrorDetails)" -ErrorAction Stop
         }
     }
     else {
-        Write-Information -Message "Sysmon is already running on this system"
+        Write-Output "Sysmon is already running on this system"
+    }
+}
+
+function UninstallSysmon {
+    [cmdletbinding()]
+    Param()
+    $Result  = $(if (@(Get-Service -Name sysmon,sysmondrv -ErrorAction SilentlyContinue).Count -eq 2) { $true } else { $false });
+    if ($Result) {
+        try {
+            $sysmonbin = Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath a.exe
+            $s = Copy-Item -Path $sysmonbin -Destination "$($env:systemroot)\system32\sysmon.exe" -PassThru -Force
+            Start-Process -FilePath $s -ArgumentList @('-u') -PassThru -NoNewWindow -ErrorAction Stop | Wait-Process
+            Remove-Item $s
+            if (-not (Get-Service -Name sysmon,sysmondrv -ErrorAction SilentlyContinue)) { 
+                Write-Output 'Successfully uninstalled sysmon' 
+            }            
+        } catch {
+            Write-Verbose $_
+            Write-Error "Message: $($_.ErrorDetails)" -ErrorAction Stop
+        }
+    }
+    else {
+        Write-Output "Sysmon not running on this system"
     }
 }
 
@@ -123,22 +142,24 @@ function TestSysmonLog {
     if(
         Get-WinEvent -ListLog * | Where-Object LogName -eq 'Microsoft-Windows-Sysmon/Operational'
     ) {
-        Write-Verbose -Message "Sysmon log exists"
+        Write-Verbose "Sysmon log exists"
         return $true
     } else {
-        Write-Verbose -Message "Sysmon doesn't exist"
+        Write-Verbose "Sysmon doesn't exist"
         return $false
     }
 }
 
+# DownloadSysmon -Verbose
 CreateSysmon -Verbose
-if (TestSysmonFile -Verbose) {
-    Write-Information -Message "Sysmon is successfully created."
-    InstallSysmon -Verbose
-}
-if (TestSysmonLog -Verbose) {
-    Write-Information -Message "Sysmon log exists"
-}
-else {
-    Write-Error -Message "Sysmon unsuccesfully installed"
-}
+# if (TestSysmonFile -Verbose) {
+#     Write-Output "Sysmon is successfully created."
+#     # UninstallSysmon -Verbose
+#     InstallSysmon -Verbose
+# }
+# if (TestSysmonLog -Verbose) {
+#     Write-Output "Sysmon log exists"
+# }
+# else {
+#     Write-Error "Sysmon unsuccesfully installed"
+# }
