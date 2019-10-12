@@ -118,21 +118,27 @@ function InstallSysmon {
 }
 
 function TestSysmonLog {
+    [cmdletbinding()]
+    Param()
     if(
         Get-WinEvent -ListLog * | Where-Object LogName -eq 'Microsoft-Windows-Sysmon/Operational'
     ) {
-        Write-Verbose -Message "Sysmon is installed"
+        Write-Verbose -Message "Sysmon log exists"
         return $true
     } else {
-        Write-Verbose -Message "Sysmon isn't installed"
+        Write-Verbose -Message "Sysmon doesn't exist"
         return $false
     }
 }
 
 CreateSysmon -Verbose
 if (TestSysmonFile -Verbose) {
+    Write-Information -Message "Sysmon is successfully created."
     InstallSysmon -Verbose
 }
 if (TestSysmonLog -Verbose) {
-    Write-Output "Sysmon log exists"
+    Write-Information -Message "Sysmon log exists"
+}
+else {
+    Write-Error -Message "Sysmon unsuccesfully installed"
 }
