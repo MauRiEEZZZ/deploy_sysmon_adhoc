@@ -63,7 +63,7 @@ function CreateSysmon {
             $tmpfile | Rename-Item -NewName 'a.exe' -Force -ErrorAction Stop
 
         } catch {
-            Write-Verbose -Message ‘Failed to create file from Base64 string: {0}’ -f $FilePath
+            Write-Verbose -Message "Failed to create file from Base64 string: $FilePath"
         }
     }
     else {

@@ -13,8 +13,8 @@ function Compress-ByteArray {
 
 	Process {
         [System.IO.MemoryStream] $inMemDataStream = New-Object System.IO.MemoryStream
-        $gzipInstance = New-Object System.IO.Compression.gzipInstance $inMemDataStream, ([IO.Compression.CompressionMode]::Compress)
-        Write-Verbose -Message "Compressing byte array"
+        $gzipInstance = New-Object System.IO.Compression.GzipStream $inMemDataStream, ([IO.Compression.CompressionMode]::Compress)
+        Write-Verbose -Message "Compressing..."
         $gzipInstance.Write( $byteArray, 0, $byteArray.Length )
         $gzipInstance.Close()
         $inMemDataStream.Close()
@@ -34,7 +34,8 @@ catch {
 if ($fileAsByteArray) {
     Write-Verbose -Message "Compress ByteArray of $($fileAsByteArray.Length) bytes"
     $fileAsCompressedByteArray = Compress-ByteArray($fileAsByteArray);
-    Write-Verbose -Message "Compressed size of byte array $($fileAsCompressedByteArray.Length)"
+    $result=$fileAsCompressedByteArray.Length/$fileAsByteArray.Length
+    Write-Verbose -Message "Compressed size of byte array $($fileAsCompressedByteArray.Length) which is $([math]::Round($($fileAsCompressedByteArray.Length/$fileAsByteArray.Length),3)*100)% of the original size"
     Write-Verbose -Message "Convert byteArray to Base64String"
     $Base64String = [System.Convert]::ToBase64String($fileAsCompressedByteArray);
 }
