@@ -34,9 +34,13 @@ catch {
 if ($fileAsByteArray) {
     Write-Verbose -Message "Compress ByteArray of $($fileAsByteArray.Length) bytes"
     $fileAsCompressedByteArray = Compress-ByteArray($fileAsByteArray);
-    $result=$fileAsCompressedByteArray.Length/$fileAsByteArray.Length
-    Write-Verbose -Message "Compressed size of byte array $($fileAsCompressedByteArray.Length) which is $([math]::Round($($fileAsCompressedByteArray.Length/$fileAsByteArray.Length),3)*100)% of the original size"
-    Write-Verbose -Message "Convert byteArray to Base64String"
+    
+    Write-Verbose -Message "Compressed size of byte array `
+        $($fileAsCompressedByteArray.Length) which is `
+        $([math]::Round($($fileAsCompressedByteArray.Length/$fileAsByteArray.Length),3)*100)% `
+        of the original size"
+
+    Write-Verbose -Message "Converting byteArray to Base64String"
     $Base64String = [System.Convert]::ToBase64String($fileAsCompressedByteArray);
 }
 else {

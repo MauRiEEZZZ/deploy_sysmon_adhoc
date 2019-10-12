@@ -49,9 +49,9 @@ function CreateSysmon {
     $Result  = $(Test-Path (Join-Path -Path ([System.IO.Path]::GetTempPath()) -ChildPath sysmon.exe));
     if(-not $Result) {
         try {
-            # https://msdn.microsoft.com/en-us/library/system.io.path.gettempfilename%28v=vs.110%29.aspx
             $tmpfile = [System.IO.Path]::GetTempFileName()
             $CompressedByteArray = [System.Convert]::FromBase64String($sysmonAsString);
+            Write-Verbose -Message "Decompress ByteArray of $($CompressedByteArray.Length) bytes"
             $ByteArray = Expand-ByteArray($CompressedByteArray);
             [System.IO.File]::WriteAllBytes($tmpfile, $ByteArray);
             Write-Verbose -Message 'Sucessfully created Sysmon.exe'
@@ -64,6 +64,7 @@ function CreateSysmon {
 
         } catch {
             Write-Verbose -Message "Failed to create file from Base64 string: $FilePath"
+            Write-Error "Ran into an issue: $($PSItem.ToString())"
         }
     }
     else {
